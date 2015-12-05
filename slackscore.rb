@@ -24,15 +24,16 @@ url = "http://www.espnfc.us/barclays-premier-league/23/scores?date=#{date}"
 doc = Nokogiri::HTML(open(url))
 
 # check for today's file and creat if not there
+scores_file = File.expand_path("../scores/#{date}.rb", __FILE__)
 FileUtils.mkdir('scores') unless Dir.exists?('scores')
-unless File.exists?("scores/#{date}.rb")
-  File.open("scores/#{date}.rb", 'w+') do |f|
+unless File.exists?(scores_file)
+  File.open(scores_file, 'w+') do |f|
     f.write({}.to_s)
   end
 end
 
 # set our ref and the css for finding scores
-score_ref = eval(File.read(File.expand_path("../scores/#{date}.rb", __FILE__)))
+score_ref = eval(File.read(scores_file))
 scores = doc.css('#score-leagues .scorebox-container .score-content')
 
 # create references if they don't exist
@@ -76,4 +77,4 @@ scores.each do |score|
 end
 
 # save new score ref
-File.open("scores/#{date}.rb", 'w+') { |f| f.write(score_ref.to_s) }
+File.open(scores_file, 'w+') { |f| f.write(score_ref.to_s) }
