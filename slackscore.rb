@@ -1,12 +1,13 @@
-#!/usr/bin/env ruby
+#!/home/deploy/.rbenv/shims/ruby
 
 require 'json'
 require 'fileutils'
 require 'open-uri'
 require 'nokogiri'
 
+
 def notify_slack(username, text, image)
-  config = eval(File.read('config.rb'))
+  config = eval(File.read(File.expand_path('../config.rb', __FILE__)))
   pl = {
     :channel  => config[:channel],
     :username => username,
@@ -31,7 +32,7 @@ unless File.exists?("scores/#{date}.rb")
 end
 
 # set our ref and the css for finding scores
-score_ref = eval(File.read("scores/#{date}.rb"))
+score_ref = eval(File.read(File.expand_path("../scores/#{date}.rb", __FILE__)))
 scores = doc.css('#score-leagues .scorebox-container .score-content')
 
 # create references if they don't exist
