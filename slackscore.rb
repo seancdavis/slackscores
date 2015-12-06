@@ -1,5 +1,3 @@
-#!/Users/sean/.rbenv/shims/ruby
-
 #!/home/deploy/.rbenv/shims/ruby
 
 require 'json'
@@ -26,15 +24,19 @@ def get_status(score)
   :not_started
 end
 
+def get_time_remaining(score)
+  score.css('.game-info .time')[0].text.strip.gsub(/\'/, ':00')
+end
+
 # scrape the page
 date = Date.today.strftime("%Y%m%d")
 
 # live
-# url = "http://www.espnfc.us/barclays-premier-league/23/scores?date=#{date}"
-# doc = Nokogiri::HTML(open(url))
+url = "http://www.espnfc.us/barclays-premier-league/23/scores?date=#{date}"
+doc = Nokogiri::HTML(open(url))
 
 # test
-doc = Nokogiri::HTML(File.read(File.expand_path('../test/epl.html', __FILE__)))
+# doc = Nokogiri::HTML(File.read(File.expand_path('../test/epl.html', __FILE__)))
 
 # check for today's file and creat if not there
 scores_file = File.expand_path("../scores/#{date}.rb", __FILE__)
@@ -79,18 +81,20 @@ scores.each do |score|
   home = score_ref[score.css('.team-name').first.text.strip]
   away = score_ref[score.css('.team-name').last.text.strip]
   # if home team scores
-  if home[:score] != score.css('.team-score')[0].text.strip.to_i
+  if score.css('.team-score')[0].text.strip.to_i > home[:score]
     title = "#{home[:name]} Goal!"
-    txt   = "#{away[:name]}: *#{away[:score]}* // "
+    txt   = "#{away[:name]}: #{away[:score]}\n"
     txt  += "#{home[:name]}: *#{score.css('.team-score')[0].text.strip.to_i}*"
+    txt  += "\n#{get_time_remaining(score)}"
     notify_slack(title, txt, home[:image])
     score_ref[home[:name]][:score] = score.css('.team-score')[0].text.strip.to_i
   end
   # if away team scored
-  if away[:score] != score.css('.team-score')[1].text.strip.to_i
+  if score.css('.team-score')[1].text.strip.to_i > away[:score]
     title = "#{away[:name]} Goal!"
-    txt   = "#{away[:name]}: *#{score.css('.team-score')[1].text.strip.to_i}*"
-    txt  += " // #{home[:name]}: *#{home[:score]}*"
+    txt   = "#{away[:name]}: *#{score.css('.team-score')[1].text.strip.to_i}*\n"
+    txt  += "#{home[:name]}: #{home[:score]}"
+    txt  += "\n#{get_time_remaining(score)}"
     notify_slack(title, txt, away[:image])
     score_ref[away[:name]][:score] = score.css('.team-score')[1].text.strip.to_i
   end
@@ -101,13 +105,13 @@ scores.each do |score|
       winner = (home[:score] > away[:score]) ? home : away
       loser = (home[:score] > away[:score]) ? away : home
       title = "#{winner[:name]} Wins!"
-      txt   = "#{winner[:name]} defeated #{loser[:name]} "
+      txt   = "#{winner[:name]} has defeated #{loser[:name]} "
       txt  += "#{score_ref[winner[:name]][:score]}-"
       txt  += "#{score_ref[loser[:name]][:score]}"
       img = winner[:image]
     # if the game ended in a tie
     else
-      title = "#{home[:name]} / #{away[:name]} Has Ended"
+      title = "#{home[:name]} / #{away[:name]}"
       txt   = "#{home[:name]} and #{away[:name]} ended in a "
       txt  += "#{score_ref[home[:name]][:score]}-"
       txt  += "#{score_ref[away[:name]][:score]} draw."
